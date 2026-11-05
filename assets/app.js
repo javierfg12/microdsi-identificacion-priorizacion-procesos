@@ -16,6 +16,16 @@ function getTrack() {
   const stored = localStorage.getItem("track");
   return getTrackFromURL() || (TRACKS.some(x => x.id === stored) ? stored : "itsm");
 }
+
+function readStorageJSON(key, fallback = {}) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch (error) {
+    console.warn(`No se pudo leer el progreso guardado (${key}). Se usará un estado vacío.`, error);
+    return fallback;
+  }
+}
 function setTrack(t) {
   if (!TRACKS.some(x => x.id === t)) return;
   localStorage.setItem("track", t);
@@ -216,13 +226,14 @@ function pill(label, key, href){
 }
 
 function toggleMark(idx, btn){
-  const marks = JSON.parse(localStorage.getItem("marks")||"{}");
+  const marks = readStorageJSON("marks");
   const t = getTrack();
   const key = `${t}:${idx}`;
   marks[key] = !marks[key];
   localStorage.setItem("marks", JSON.stringify(marks));
   btn.textContent = marks[key] ? "Marcado" : "Marcar";
   btn.classList.toggle("primary", !!marks[key]);
+  btn.setAttribute("aria-pressed", String(!!marks[key]));
 }
 
 function renderFeed(){
@@ -245,7 +256,7 @@ function renderFeed(){
 
     const markerBtn = el("button","btn");
     markerBtn.type="button";
-    const savedMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+    const savedMarks = readStorageJSON("marks");
     const isMarked = !!savedMarks[`${t}:${idx}`];
     markerBtn.textContent = isMarked ? "Marcado" : "Marcar";
     markerBtn.classList.toggle("primary", isMarked);
@@ -321,11 +332,11 @@ function setupPista(){
       <div class="footerHint">Tip: breve + 1 dato o condición.</div>
     `;
     const answer = card.querySelector("textarea");
-    const answers = JSON.parse(localStorage.getItem("answers") || "{}");
+    const answers = readStorageJSON("answers");
     const answerKey = `${t}:${i}`;
     answer.value = answers[answerKey] || "";
     answer.addEventListener("input", () => {
-      const current = JSON.parse(localStorage.getItem("answers") || "{}");
+      const current = readStorageJSON("answers");
       current[answerKey] = answer.value;
       localStorage.setItem("answers", JSON.stringify(current));
     });
@@ -336,17 +347,21 @@ function setupPista(){
   const prog = $("#prog");
   if(!prog) return;
 
-  const io = new IntersectionObserver(entries=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
-        const idx = [...wrap.children].indexOf(e.target);
-        const pct = ((idx+1)/wrap.children.length)*100;
-        prog.style.width = pct.toFixed(0)+"%";
-      }
-    });
-  }, { root: wrap, threshold: .6 });
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          const idx = [...wrap.children].indexOf(e.target);
+          const pct = ((idx+1)/wrap.children.length)*100;
+          prog.style.width = pct.toFixed(0)+"%";
+        }
+      });
+    }, { root: wrap, threshold: .6 });
 
-  [...wrap.children].forEach(ch=>io.observe(ch));
+    [...wrap.children].forEach(ch=>io.observe(ch));
+  } else {
+    prog.style.width = "100%";
+  }
 }
 
 // =====================
