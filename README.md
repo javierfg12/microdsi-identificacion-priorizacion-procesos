@@ -12,6 +12,14 @@ Aplicación web educativa para trabajar los contenidos de M2-S10 mediante tres i
 ## Ejecución
 No requiere instalación ni servidor backend. Abre `index.html` en un navegador moderno o publica el repositorio con GitHub Pages.
 
+## Pruebas automatizadas
+Con Node.js 22 o superior:
+```bash
+node --check assets/app.js
+node --test tests/*.test.cjs
+```
+Las pruebas verifican los tres tracks, la persistencia de selección, el guardado de marcas y la tolerancia a datos locales corruptos.
+
 ## Navegación
 - `index.html`: portada.
 - `feed.html`: microlecciones.
