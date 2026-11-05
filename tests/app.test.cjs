@@ -64,6 +64,7 @@ test('un JSON de progreso corrupto no bloquea la aplicación', () => {
 test('marcar una lección actualiza persistencia y accesibilidad', () => {
   const { context, values } = createContext();
   const state = { textContent: '', pressed: '', classes: [], classList: {
+    classes: [],
     toggle(name, enabled) { this.classes = this.classes.filter(x => x !== name); if (enabled) this.classes.push(name); },
   }, setAttribute(name, value) { if (name === 'aria-pressed') this.pressed = value; } };
   context.btn = state;
