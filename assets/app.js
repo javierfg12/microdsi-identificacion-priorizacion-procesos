@@ -13,13 +13,15 @@ function getTrackFromURL() {
   return TRACKS.some(x => x.id === t) ? t : null;
 }
 function getTrack() {
-  return getTrackFromURL() || localStorage.getItem("track") || "itsm";
+  const stored = localStorage.getItem("track");
+  return getTrackFromURL() || (TRACKS.some(x => x.id === stored) ? stored : "itsm");
 }
 function setTrack(t) {
+  if (!TRACKS.some(x => x.id === t)) return;
   localStorage.setItem("track", t);
-  // si NO viene por URL, refrescamos para re-render
   const u = new URL(window.location.href);
-  if (!u.searchParams.get("track")) location.reload();
+  u.searchParams.set("track", t);
+  window.location.assign(u.toString());
 }
 
 // =====================
@@ -243,7 +245,11 @@ function renderFeed(){
 
     const markerBtn = el("button","btn");
     markerBtn.type="button";
-    markerBtn.textContent = "Marcar";
+    const savedMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+    const isMarked = !!savedMarks[`${t}:${idx}`];
+    markerBtn.textContent = isMarked ? "Marcado" : "Marcar";
+    markerBtn.classList.toggle("primary", isMarked);
+    markerBtn.setAttribute("aria-pressed", String(isMarked));
     markerBtn.onclick = () => toggleMark(idx, markerBtn);
 
     top.appendChild(badge);
@@ -277,7 +283,7 @@ function renderFeed(){
     const actH = el("h4"); actH.textContent = "Acciones rápidas";
     const actions = el("div","actions");
     actions.appendChild(pill("Ir al Lab", "→", "lab.html"));
-    actions.appendChild(pill("Pistas del caso", "⇢", "pista.html"));
+    actions.appendChild(pill("Pistas del caso", "⇢", "pista.htm"));
     act.appendChild(actH); act.appendChild(actions);
 
     side.appendChild(ex);
@@ -311,9 +317,18 @@ function setupPista(){
       <hr class="sep"/>
       <b style="display:block;font-size:13px">Check</b>
       <p style="margin:6px 0 10px 0;color:var(--muted)">${s.q}</p>
-      <textarea placeholder="Escribe aquí..."></textarea>
+      <textarea data-answer-index="${i}" placeholder="Escribe aquí..."></textarea>
       <div class="footerHint">Tip: breve + 1 dato o condición.</div>
     `;
+    const answer = card.querySelector("textarea");
+    const answers = JSON.parse(localStorage.getItem("answers") || "{}");
+    const answerKey = `${t}:${i}`;
+    answer.value = answers[answerKey] || "";
+    answer.addEventListener("input", () => {
+      const current = JSON.parse(localStorage.getItem("answers") || "{}");
+      current[answerKey] = answer.value;
+      localStorage.setItem("answers", JSON.stringify(current));
+    });
     sec.appendChild(card);
     wrap.appendChild(sec);
   });
@@ -391,7 +406,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   const dl = $("#btnDownload");
   if(dl) dl.addEventListener("click", ()=>{
-    const text = $("#mdOut").value || "";
+    const output = $("#mdOut");
+    if (!output) return;
+    if (!output.value.trim()) exportLabToMarkdown();
+    const text = output.value;
     const t = getTrack();
     downloadText(`m2-s10_${t}_entregable.md`, text);
   });
